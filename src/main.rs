@@ -2,16 +2,19 @@ mod board;
 mod config;
 mod ui;
 mod menu;
+mod lens;
 
+use bevy_tweening::TweeningPlugin;
 use menu::*;
 use board::*;
 use config::*;
 use ui::*;
+use lens::*;
 
-use bevy::{prelude::*, winit::WinitSettings};
-use bevy_inspector_egui::WorldInspectorPlugin;
+use bevy::{prelude::*, core_pipeline::clear_color::ClearColorConfig};
+use bevy_inspector_egui::{WorldInspectorPlugin};
 use iyes_loopless::prelude::*;
-
+use sudoku_variants::{Sudoku, constraint::DefaultConstraint};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum GameState {
@@ -24,47 +27,72 @@ enum GameState {
     Over,
 }
 
+#[derive(Deref, DerefMut)]
+pub struct SukokuState(pub Sudoku<DefaultConstraint>);
+
+impl Default for SukokuState {
+    fn default() -> Self {
+        Self(Sudoku::new_empty(3,3, DefaultConstraint).unwrap())
+    }
+}
+
 fn main() {
     App::new()
         .insert_resource(WindowDescriptor {
             title: "Sudoku".to_string(),
             ..default()
         })
-        .insert_resource(WinitSettings::desktop_app())
+        //.insert_resource(WinitSettings::desktop_app())
         .add_plugins(DefaultPlugins)
-        .add_plugin(WorldInspectorPlugin::default())
+        .add_plugin(WorldInspectorPlugin::default())        
+        .add_plugin(TweeningPlugin)
         // grid
         //.add_plugin(bevy_infinite_grid::InfiniteGridPlugin)
         //.add_startup_system(spawn_grid)
         // Setup Resources
-        .insert_resource(ClearColor(Color::WHITE))
+        .init_resource::<SukokuState>()
+        
         // Local Plugins
         .add_plugin(UIPlugin)
         .add_plugin(ConfigPlugin)
         .add_plugin(BoardPlugin)
         .add_plugin(MenuPlugin)
+        .add_plugin(LensPlugin)
         .add_loopless_state(GameState::Loading)
         // global setup
         .add_startup_system(setup_camera)
-        .add_startup_system(spawn_layout)
+        .add_startup_system(setup_layout)        
+        .add_startup_system(startup)
+        .add_system(bevy::window::close_on_esc)
         .run();
 }
 
-fn setup_camera(mut commands: Commands) {
+fn setup_camera(
+    mut commands: Commands,
+    theme: Res<Theme>,
+) {
     commands.spawn_bundle(Camera2dBundle {
+        camera_2d: Camera2d {
+            // Using custom clear color so it can be tweened
+            clear_color: ClearColorConfig::Custom(theme.background),
+        },
         transform: Transform::from_xyz(0.0, 0.0, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
         ..default()
     });
 }
 
+fn startup(
+    mut new_game_events: EventWriter<NewGame>,
+) {
+    new_game_events.send(NewGame);
+}
 
-
-fn spawn_layout(
+fn setup_layout(
     mut commands: Commands,
     //config: Res<SudokuConfig>,
     font_assets: Res<FontAssets>,
-    button_assets: Res<ButtonAssets>,
-) {
+    theme: Res<Theme>,
+) {    
     // root node
     commands
         .spawn_bundle(NodeBundle {
@@ -80,9 +108,9 @@ fn spawn_layout(
         })
         .insert(Name::new("Layout"))
         .with_children(|parent| {
-            create_board(parent, &button_assets, &font_assets);
-            create_board_buttons(parent, &button_assets,  &font_assets);
-            create_menu(parent, &button_assets, &font_assets);
+            create_board(parent, &theme, &font_assets);
+            create_board_buttons(parent, &theme,  &font_assets);
+            create_menu(parent, &theme, &font_assets);
         });
 }
 
