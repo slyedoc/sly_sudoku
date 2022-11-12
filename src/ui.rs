@@ -207,7 +207,10 @@ impl FontAssets {
                     color: theme.btn_text,
                 },
             }],
-            ..default()
+            alignment: TextAlignment {
+                vertical: VerticalAlign::Center,
+                horizontal: HorizontalAlign::Center,
+            }
         }
     }
 }

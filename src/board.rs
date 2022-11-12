@@ -172,27 +172,7 @@ pub fn create_board(
                                                         .insert(CellPosition::new(pos_x, pos_y))
                                                         .with_children(|parent| {
                                                             parent.spawn_bundle(TextBundle {
-                                                                text: Text {
-                                                                    sections: vec![TextSection {
-                                                                        value: format!(
-                                                                            "({pos_x},{pos_y})"
-                                                                        ),
-                                                                        //value: "".to_string(),
-                                                                        style: TextStyle {
-                                                                            font: font_assets
-                                                                                .ui_font
-                                                                                .clone(),
-                                                                            font_size: 30.0,
-                                                                            color: Color::BLACK,
-                                                                        },
-                                                                    }],
-                                                                    alignment: TextAlignment {
-                                                                        vertical:
-                                                                            VerticalAlign::Center,
-                                                                        horizontal:
-                                                                            HorizontalAlign::Center,
-                                                                    },
-                                                                },
+                                                                text: font_assets.btn(format!("({pos_x},{pos_y})"), &theme),
                                                                 ..default()
                                                             });
                                                         });
