@@ -4,25 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = { version = "0.8" }
-bevy-inspector-egui = { version = "0.13", default-features = false, features = [
-    # "clipboard", removing for android support
-    "bevy_pbr",
-    "bevy_sprite",
-    "bevy_text",
-    "bevy_ui",
-] }
-iyes_loopless = { version = "0.8" }
-iyes_progress = { version = "0.6", features = [] }
-bevy_asset_loader = { version = "0.13", features = [
-    "stageless",
-    "progress_tracking_stageless",
-] }
+bevy = { version = "0.9" }
 bevy_tweening = "0.5"
 strum = "0.24"
 strum_macros = "0.24"
 sudoku-variants = "0.2.1"
-rand = "0.8"
 
-
-[target.'cfg(target_arch = "aarch64")'.dependencies]
+[patch.crates-io]
+# few small changes for bevy 0.9
+bevy_tweening = { git = "https://github.com/slyedoc/bevy_tweening" }

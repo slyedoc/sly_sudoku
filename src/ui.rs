@@ -1,10 +1,9 @@
 use std::time::Duration;
 
 use bevy::prelude::*;
-use bevy_inspector_egui::Inspectable;
 use bevy_tweening::{lens::*, *};
 
-use crate::{board::Cell, lens::{Camera2dClearColorLens, UiColorLens}};
+use crate::{board::Cell, lens::{Camera2dClearColorLens, BackgroundColorLens}};
 
 pub struct UIPlugin;
 
@@ -29,10 +28,10 @@ pub fn theme_toggle_events(
     mut theme_toggle: EventReader<ThemeToggle>,
     mut theme_mode: ResMut<ThemeMode>,
     mut theme: ResMut<Theme>,
-    button_query: Query<Entity, (With<Button>, With<UiColor>)>,
+    button_query: Query<Entity, (With<Button>, With<BackgroundColor>)>,
     text_query: Query<Entity, With<Text>>,
-    thick_line_query: Query<Entity, (With<UiColor>, With<ThickLine>)>,
-    thin_line_query: Query<Entity, (With<UiColor>, With<ThinLine>)>,
+    thick_line_query: Query<Entity, (With<BackgroundColor>, With<ThickLine>)>,
+    thin_line_query: Query<Entity, (With<BackgroundColor>, With<ThinLine>)>,
     camera_query: Query<Entity, With<Camera2d>>,
 ) {
     for _ in theme_toggle.iter() {    
@@ -45,7 +44,6 @@ pub fn theme_toggle_events(
         };
 
         let ease_fn = EaseFunction::CircularInOut;
-        let tweening_type = TweeningType::Once;
         let duration = Duration::from_secs_f32(0.5);
 
         *theme = theme_mode.theme().clone();
@@ -53,9 +51,8 @@ pub fn theme_toggle_events(
         for e in button_query.iter() {
             commands.entity(e).insert(Animator::new(Tween::new(            
                 ease_fn,
-                tweening_type,
                 duration,
-                UiColorLens {
+                BackgroundColorLens {
                     start: old_theme.btn_normal,
                     end: theme.btn_normal,
                 },
@@ -65,9 +62,8 @@ pub fn theme_toggle_events(
         for e in thin_line_query.iter() {            
             commands.entity(e).insert(Animator::new(Tween::new(            
                 ease_fn,
-                tweening_type,
                 duration,
-                UiColorLens {
+                BackgroundColorLens {
                     start: old_theme.line_thin,
                     end: theme.line_thin,
                 },
@@ -77,9 +73,8 @@ pub fn theme_toggle_events(
         for e in thick_line_query.iter() {
             commands.entity(e).insert(Animator::new(Tween::new(            
                 ease_fn,
-                tweening_type,
                 duration,
-                UiColorLens {
+                BackgroundColorLens {
                     start: old_theme.line_thick,
                     end: theme.line_thick,
                 },
@@ -89,7 +84,6 @@ pub fn theme_toggle_events(
         for e in text_query.iter() {            
             commands.entity(e).insert(Animator::new(Tween::new(            
                 ease_fn,
-                tweening_type,
                 duration,
                 TextColorLens {
                     start: old_theme.btn_text,
@@ -102,7 +96,6 @@ pub fn theme_toggle_events(
         for e in camera_query.iter() {            
             commands.entity(e).insert(Animator::new(Tween::new(
                 ease_fn,
-                tweening_type,
                 duration,
                 Camera2dClearColorLens {
                     start: old_theme.background,
@@ -116,7 +109,7 @@ pub fn theme_toggle_events(
 /// Event to toggle the theme
 pub struct ThemeToggle;
 
-#[derive(Inspectable, Clone)]
+#[derive(Resource, Clone)]
 pub enum ThemeMode {
     Light,
     Dark,
@@ -137,7 +130,7 @@ impl ThemeMode {
     }
 }
 
-#[derive(Inspectable, Clone)]
+#[derive(Resource,Clone)]
 pub struct Theme {
     pub btn_text: Color,
     pub btn_normal: Color,
@@ -180,6 +173,7 @@ impl Theme {
     };
 }
 
+#[derive(Resource)]
 pub struct FontAssets {
     pub ui_font: Handle<Font>,
 }
@@ -218,7 +212,7 @@ impl FontAssets {
 // Note: exclude the cell buttons in the query, look for better way to do this
 fn button_system(
     mut interaction_query: Query<
-        (&Interaction, &mut UiColor),
+        (&Interaction, &mut BackgroundColor),
         (Changed<Interaction>, With<Button>, Without<Cell>),
     >,
 

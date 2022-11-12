@@ -26,7 +26,7 @@ pub struct BoardSelect(pub Entity);
 pub struct CellSelect(pub Option<Value>);
 
 /// Resource for currently selected board entity
-#[derive(Default)]
+#[derive(Default, Resource)]
 pub struct BoardSelected {
     pub entity: Option<Entity>,
 }
@@ -44,14 +44,14 @@ pub fn create_board(
     let half_thin_line = Val::Px(thin_line_thickness * 0.5);
 
     parent
-        .spawn_bundle(NodeBundle {
+        .spawn(NodeBundle {
             style: Style {
                 align_content: AlignContent::FlexStart,
-                flex_direction: FlexDirection::ColumnReverse,
+                flex_direction: FlexDirection::Column,
                 padding: UiRect::all(Val::Px(0.0)),
                 ..default()
             },
-            color: theme.line_thick.into(),
+            background_color: BackgroundColor(theme.line_thick.into()),
             ..default()
         })
         .insert(ThickLine)        
@@ -61,23 +61,23 @@ pub fn create_board(
             // as a 3v3 grid of 3x3 cells
             for grid_y in 0..3 {
                 parent
-                    .spawn_bundle(NodeBundle {
+                    .spawn(NodeBundle {
                         style: Style {
                             flex_direction: FlexDirection::Row,
                             justify_content: JustifyContent::Center,
                             padding: UiRect::all(Val::Px(0.0)),
                             ..default()
                         },
-                        color: Color::NONE.into(),
+                        background_color: Color::NONE.into(),
                         ..default()
                     })
                     .insert(Name::new(format!("Grid Row {}", grid_y)))
                     .with_children(|parent| {
                         for grid_x in 0..3 {
                             parent
-                                .spawn_bundle(NodeBundle {
+                                .spawn(NodeBundle {
                                     style: Style {
-                                        flex_direction: FlexDirection::ColumnReverse,
+                                        flex_direction: FlexDirection::Column,
                                         justify_content: JustifyContent::Center,                                        
                                         margin: UiRect {
                                             left: if grid_x != 0  {
@@ -103,7 +103,7 @@ pub fn create_board(
                                         },
                                         ..default()
                                     },
-                                    color: theme.line_thin.into(),
+                                    background_color: theme.line_thin.into(),
                                     ..default()
                                 })
                                 .insert(ThinLine)
@@ -113,14 +113,14 @@ pub fn create_board(
                                     for y in 0..3 {
                                         let pos_y = grid_y * 3 + y;
                                         parent
-                                            .spawn_bundle(NodeBundle {
+                                            .spawn(NodeBundle {
                                                 style: Style {
                                                     flex_direction: FlexDirection::Row,
                                                     justify_content: JustifyContent::Center,
                                                     margin: UiRect::all(Val::Px(0.0)),
                                                     ..default()
                                                 },
-                                                color: Color::NONE.into(),
+                                                background_color: Color::NONE.into(),
                                                 ..default()
                                             })
                                             .insert(Name::new(format!("Row {}", y)))
@@ -129,7 +129,7 @@ pub fn create_board(
                                                 for x in 0..3 {
                                                     let pos_x = grid_x * 3 + x;
                                                     parent
-                                                        .spawn_bundle(ButtonBundle {
+                                                        .spawn(ButtonBundle {
                                                             style: Style {
                                                                 size: Size::new(
                                                                     Val::Px(50.0),
@@ -162,7 +162,7 @@ pub fn create_board(
                                                                 align_items: AlignItems::Center,
                                                                 ..default()
                                                             },
-                                                            color: theme.btn_normal.into(),
+                                                            background_color: BackgroundColor(theme.btn_normal.into()),
                                                             ..default()
                                                         })
                                                         .insert(Name::new(format!(
@@ -171,7 +171,7 @@ pub fn create_board(
                                                         .insert(Cell::default())
                                                         .insert(CellPosition::new(pos_x, pos_y))
                                                         .with_children(|parent| {
-                                                            parent.spawn_bundle(TextBundle {
+                                                            parent.spawn(TextBundle {
                                                                 text: font_assets.btn(format!("({pos_x},{pos_y})"), &theme),
                                                                 ..default()
                                                             });
@@ -195,7 +195,7 @@ pub fn create_board_buttons(
     font_assets: &FontAssets,
 ) {
     parent
-        .spawn_bundle(NodeBundle {
+        .spawn(NodeBundle {
             style: Style {
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
@@ -206,7 +206,7 @@ pub fn create_board_buttons(
                 },
                 ..default()
             },
-            color: theme.line_thick.into(),
+            background_color: theme.line_thick.into(),
             ..default()
         })
         .insert(ThickLine)
@@ -214,7 +214,7 @@ pub fn create_board_buttons(
         .with_children(|parent| {
             for i in 0..=9 {
                 parent
-                    .spawn_bundle(ButtonBundle {
+                    .spawn(ButtonBundle {
                         style: Style {
                             size: Size::new(Val::Px(50.0), Val::Px(50.0)),
                             margin: UiRect::all(Val::Px(2.0)),
@@ -222,7 +222,7 @@ pub fn create_board_buttons(
                             align_items: AlignItems::Center,
                             ..default()
                         },
-                        color: theme.btn_normal.into(),
+                        background_color: theme.btn_normal.into(),
                         ..default()
                     })
                     .insert(Name::new(format!("Option {i}")))
@@ -232,7 +232,8 @@ pub fn create_board_buttons(
                         CellMenuButton(None)
                     })                    
                     .with_children(|parent| {
-                        parent.spawn_bundle(TextBundle {
+                        parent.spawn(
+                            TextBundle {
                             text: Text {
                                 sections: vec![TextSection {
                                     value: if i > 0 {
@@ -260,7 +261,7 @@ pub fn create_board_buttons(
 
 fn board_cell_button_system(
     mut interaction_query: Query<
-        (Entity, &Interaction, &mut UiColor, &Cell),
+        (Entity, &Interaction, &mut BackgroundColor, &Cell),
         (Changed<Interaction>, With<Button>),
     >,
     theme: Res<ThemeMode>,
@@ -295,7 +296,7 @@ fn board_cell_button_system(
 fn cell_menu_button_system(
     mut select_event: EventWriter<CellSelect>,
     mut interaction_query: Query<
-        (&Interaction, &mut UiColor, &CellMenuButton),
+        (&Interaction, &mut BackgroundColor, &CellMenuButton),
         (Changed<Interaction>, With<Button>),
     >,
     theme: Res<ThemeMode>,
@@ -318,6 +319,7 @@ struct KeyValues {
     pub value: Option<Value>,
 }
 
+#[derive(Resource)]
 struct CellMenuKeys(pub Vec<KeyValues>);
 
 impl Default for CellMenuKeys {
@@ -389,7 +391,7 @@ fn cell_keyboard_input(
 fn cell_select_event(
     mut select_events: EventReader<BoardSelect>,
     mut board_selected: ResMut<BoardSelected>,
-    mut query: Query<(&mut UiColor, &Cell)>,
+    mut query: Query<(&mut BackgroundColor, &Cell)>,
     button_assets: Res<Theme>,
 ) {
     for event in select_events.iter() {
