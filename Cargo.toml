@@ -1,15 +1,90 @@
 [package]
-name = "sly_sudoku"
+name = "sly-sudoku"
 version = "0.1.0"
 edition = "2021"
 
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+#default = ["dynamic"]
+default = []
+dynamic = ["bevy/dynamic"]
+
 [dependencies]
-bevy = { version = "0.9" }
+bevy = { version = "0.9", default-features = false, features = [
+  "bevy_asset",
+  #"bevy_audio",
+  #"bevy_gilrs",
+  "bevy_scene",
+  "bevy_winit",
+  "render",
+  #"png",
+  #"hdr",
+  #"vorbis",
+  "x11",
+  #"filesystem_watcher",
+] }
+bevy-inspector-egui = { version = "0.14", default-features = false, features = [
+  #"clipboard",
+  "bevy_pbr",
+  "bevy_sprite",
+  "bevy_text",
+  "bevy_ui",
+] }
 bevy_tweening = "0.5"
 strum = "0.24"
 strum_macros = "0.24"
 sudoku-variants = "0.2.1"
+futures-lite = "1.11.3"
+
+# [target.'cfg(target_arch = "wasm32")'.dependencies]
+# bevy_internal = { path = "crates/bevy_internal", version = "0.9.0", default-features = false, features = [
+#   "webgl",
+# ] }
 
 [patch.crates-io]
 # few small changes for bevy 0.9
 bevy_tweening = { git = "https://github.com/slyedoc/bevy_tweening" }
+
+# touch event patch
+bevy = { path = "../bevy" }
+
+
+# Android info
+# https://crates.io/crates/cargo-apk
+[package.metadata.android]
+package = "com.sly.sudoku"
+apk_name = "sudoku"
+assets = "assets"
+resources = "assets/android-res"
+#build_targets = ["aarch64-linux-android", "armv7-linux-androideabi"]
+
+[package.metadata.android.sdk]
+min_sdk_version = 30
+target_sdk_version = 33
+max_sdk_version = 33
+
+#[package.metadata.android.sdk]
+#target_sdk_version = 31
+
+[package.metadata.android.application]
+icon = "@mipmap/ic_launcher"
+label = "Sudoku"
+
+# [profile.wasm-release]
+# inherits = "release"
+# opt-level = "z"
+# lto = "fat"
+# codegen-units = 1
+
+
+# Specifies the package property of the manifest.
+#package = "com.sly.sukoku"
+
+# Specifies the array of targets to build for.
+#build_targets = [ "armv7-linux-androideabi", "aarch64-linux-android", "i686-linux-android", "x86_64-linux-android" ]
+
+# Name for final APK file.
+# Defaults to package name.

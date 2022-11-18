@@ -1,0 +1,6 @@
+[toolchain]
+channel = "stable"
+
+#targets = [ "wasm32-unknown-unknown" ]
+#targets = [ "x86_64-linux-android" ]
+# https://rust-lang.github.io/rustup/overrides.html#the-toolchain-file

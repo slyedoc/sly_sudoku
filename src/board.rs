@@ -1,4 +1,5 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, window::WindowResized};
+use sudoku_variants::SudokuGrid;
 
 use crate::ui::*;
 use std::fmt::{Display, Formatter};
@@ -15,7 +16,9 @@ impl Plugin for BoardPlugin {
             .add_system(cell_select_event)
             .add_system(cell_menu_select_event)
             .add_system(cell_keyboard_input)
-            .add_system(update_cell_text);
+            .add_system(update_cell_text)
+            .add_system(resize_board_cells)
+            .add_system(resize_cell_menu);
     }
 }
 
@@ -35,6 +38,9 @@ pub fn create_board(
     parent: &mut ChildBuilder,
     theme: &Theme,
     font_assets: &FontAssets,
+    grid: &SudokuGrid,
+    width: f32,
+    height: f32,
 ) {
     // board
     let bold_line_thickness = 4.0;
@@ -43,6 +49,7 @@ pub fn create_board(
     let thin_line_thickness = 2.0;
     let half_thin_line = Val::Px(thin_line_thickness * 0.5);
 
+    let (font_scale, cell_size) = get_cell_sizes(width, height);
     parent
         .spawn(NodeBundle {
             style: Style {
@@ -54,7 +61,7 @@ pub fn create_board(
             background_color: BackgroundColor(theme.line_thick.into()),
             ..default()
         })
-        .insert(ThickLine)        
+        .insert(ThickLine)
         .insert(Name::new("Board"))
         .with_children(|parent| {
             // since I want the grid lines to look right, I need to create the grid
@@ -78,24 +85,24 @@ pub fn create_board(
                                 .spawn(NodeBundle {
                                     style: Style {
                                         flex_direction: FlexDirection::Column,
-                                        justify_content: JustifyContent::Center,                                        
+                                        justify_content: JustifyContent::Center,
                                         margin: UiRect {
-                                            left: if grid_x != 0  {
+                                            left: if grid_x != 0 {
                                                 half_bold_line
                                             } else {
                                                 bold_line
-                                            },                                                                    
+                                            },
                                             right: if grid_x != 2 {
                                                 half_bold_line
                                             } else {
                                                 bold_line
                                             },
-                                            top: if grid_y != 0  {
+                                            top: if grid_y != 0 {
                                                 half_bold_line
                                             } else {
                                                 bold_line
-                                            }, 
-                                            bottom: if grid_y != 2  {
+                                            },
+                                            bottom: if grid_y != 2 {
                                                 half_bold_line
                                             } else {
                                                 bold_line
@@ -131,48 +138,59 @@ pub fn create_board(
                                                     parent
                                                         .spawn(ButtonBundle {
                                                             style: Style {
-                                                                size: Size::new(
-                                                                    Val::Px(50.0),
-                                                                    Val::Px(50.0),
-                                                                ),
+                                                                size: Size {
+                                                                    width: cell_size,
+                                                                    height: cell_size,
+                                                                },
                                                                 margin: UiRect {
-                                                                    left: if x != 0  {
+                                                                    left: if x != 0 {
                                                                         half_thin_line
                                                                     } else {
                                                                         Val::Px(0.0)
-                                                                    },                                                                    
+                                                                    },
                                                                     right: if x != 2 {
                                                                         half_thin_line
                                                                     } else {
                                                                         Val::Px(0.0)
                                                                     },
-                                                                    top: if y != 0  {
+                                                                    top: if y != 0 {
                                                                         half_thin_line
                                                                     } else {
                                                                         Val::Px(0.0)
-                                                                    }, 
-                                                                    bottom: if y != 2  {
+                                                                    },
+                                                                    bottom: if y != 2 {
                                                                         half_thin_line
                                                                     } else {
                                                                         Val::Px(0.0)
-                                                                    }, 
+                                                                    },
                                                                     ..default()
                                                                 },
-                                                                justify_content: JustifyContent::Center,
+                                                                justify_content:
+                                                                    JustifyContent::Center,
                                                                 align_items: AlignItems::Center,
                                                                 ..default()
                                                             },
-                                                            background_color: BackgroundColor(theme.btn_normal.into()),
+                                                            background_color: BackgroundColor(
+                                                                theme.btn_normal.into(),
+                                                            ),
                                                             ..default()
                                                         })
                                                         .insert(Name::new(format!(
                                                             "Cell {pos_x}x{pos_y}"
                                                         )))
-                                                        .insert(Cell::default())
+                                                        .insert(Cell::new(
+                                                            grid.get_cell(pos_x, pos_y).unwrap(),
+                                                        ))
                                                         .insert(CellPosition::new(pos_x, pos_y))
                                                         .with_children(|parent| {
                                                             parent.spawn(TextBundle {
-                                                                text: font_assets.btn(format!("({pos_x},{pos_y})"), &theme),
+                                                                transform: Transform::from_scale(
+                                                                    Vec3::splat(font_scale),
+                                                                ),
+                                                                text: font_assets.btn(
+                                                                    " ",//format!("({pos_x},{pos_y})"),
+                                                                    &theme,
+                                                                ),
                                                                 ..default()
                                                             });
                                                         });
@@ -186,14 +204,44 @@ pub fn create_board(
         });
 }
 
+pub fn resize_board_cells(
+    mut window_resize: EventReader<WindowResized>,
+    mut query: Query<(&mut Style, &Children), With<Cell>>,
+    mut text_query: Query<&mut Transform, With<Text>>,
+) {
+    for resize in window_resize.iter() {
+        let (font_scale, cell_size) = get_cell_sizes(resize.width, resize.height);
+
+        for (mut style, children) in query.iter_mut() {
+            style.size.width = cell_size;
+            style.size.height = cell_size;
+
+            for c in children.iter() {
+                if let Ok(mut trans) = text_query.get_mut(*c) {
+                    trans.scale = Vec3::splat(font_scale);
+                }
+            }
+        }
+    }
+}
+
+fn get_cell_sizes(width: f32, height: f32) -> (f32, Val) {
+    let size = width.min(height) / 11.0;
+    let value = Val::Px(size);
+    (size / 80.0, value)
+}
+
 #[derive(Component)]
 pub struct CellMenuButton(pub Option<Value>);
 
-pub fn create_board_buttons(
+pub fn create_cell_menu(
     parent: &mut ChildBuilder,
     theme: &Theme,
     font_assets: &FontAssets,
+    width: f32,
+    height: f32,
 ) {
+    let (font_size, cell_size) = get_cell_sizes(width, height);
     parent
         .spawn(NodeBundle {
             style: Style {
@@ -202,6 +250,10 @@ pub fn create_board_buttons(
                 padding: UiRect::all(Val::Px(2.0)),
                 margin: UiRect {
                     top: Val::Px(20.0),
+                    ..default()
+                },
+                max_size: Size {
+                    width: Val::Percent(90.0),
                     ..default()
                 },
                 ..default()
@@ -214,49 +266,67 @@ pub fn create_board_buttons(
         .with_children(|parent| {
             for i in 0..=9 {
                 parent
-                    .spawn(ButtonBundle {
-                        style: Style {
-                            size: Size::new(Val::Px(50.0), Val::Px(50.0)),
-                            margin: UiRect::all(Val::Px(2.0)),
-                            justify_content: JustifyContent::Center,
-                            align_items: AlignItems::Center,
+                    .spawn((
+                        ButtonBundle {
+                            style: Style {
+                                margin: UiRect::all(Val::Px(2.0)),
+                                justify_content: JustifyContent::Center,
+                                align_items: AlignItems::Center,
+                                size: Size {
+                                    width: cell_size,
+                                    height: cell_size,
+                                },
+                                aspect_ratio: Some(1.0),
+                                ..default()
+                            },
+                            background_color: theme.btn_normal.into(),
                             ..default()
                         },
-                        background_color: theme.btn_normal.into(),
-                        ..default()
-                    })
-                    .insert(Name::new(format!("Option {i}")))
-                    .insert( if i > 0 {
-                        CellMenuButton(Some(Value::from(i)))
-                    } else {
-                        CellMenuButton(None)
-                    })                    
+                        Name::new(format!("Option {i}")),
+                        if i > 0 {
+                            CellMenuButton(Some(Value::from(i)))
+                        } else {
+                            CellMenuButton(None)
+                        },
+                    ))
                     .with_children(|parent| {
-                        parent.spawn(
-                            TextBundle {
-                            text: Text {
-                                sections: vec![TextSection {
-                                    value: if i > 0 {
-                                        format!("{i}")
-                                    } else {
-                                        "".to_string()
-                                    },
-                                    style: TextStyle {
-                                        font: font_assets.ui_font.clone(),
-                                        font_size: 30.0,
-                                        color: Color::BLACK,
-                                    },
-                                }],
-                                alignment: TextAlignment {
-                                    vertical: VerticalAlign::Center,
-                                    horizontal: HorizontalAlign::Center,
+                        parent.spawn(TextBundle {
+                            transform: Transform::from_scale(Vec3::splat(font_size)),
+                            text: font_assets.btn(
+                                if i > 0 {
+                                    format!("{i}")
+                                } else {
+                                    "".to_string()
                                 },
-                            },
+                                &theme,
+                            ),
                             ..default()
                         });
                     });
             }
         });
+}
+
+pub fn resize_cell_menu(
+    mut window_resize: EventReader<WindowResized>,
+    mut query: Query<(&mut Style, &Children), With<CellMenuButton>>,
+    mut text_query: Query<&mut Transform, With<Text>>,
+) {
+    for resize in window_resize.iter() {
+        let size = resize.width.min(resize.height) / 11.0;
+        let value = Val::Px(size);
+
+        for (mut style, children) in query.iter_mut() {
+            style.size.width = value;
+            style.size.height = value;
+
+            for c in children.iter() {
+                if let Ok(mut trans) = text_query.get_mut(*c) {
+                    trans.scale = Vec3::splat(size / 80.0);
+                }
+            }
+        }
+    }
 }
 
 fn board_cell_button_system(
@@ -301,7 +371,6 @@ fn cell_menu_button_system(
     >,
     theme: Res<ThemeMode>,
 ) {
-    
     for (interaction, mut color, cell_menu) in &mut interaction_query {
         let theme = theme.theme();
         match *interaction {
@@ -468,25 +537,25 @@ impl Default for Cell {
 }
 
 impl Cell {
+    pub fn new(value: Option<usize>) -> Self {
+        match value {
+            Some(v) => Self {
+                value: Some(Value::from(v)),
+                enabled: false,
+            },
+            None => Self {
+                value: None,
+                enabled: true,
+            },
+        }
+    }
+
     pub fn value(&self) -> Option<Value> {
         self.value
     }
 
     pub fn set_value(&mut self, value: Value) {
         self.value = Some(value);
-    }
-
-    pub fn init_value(&mut self, value: Option<usize>) {
-        match value {
-            Some(v) => {
-                self.value = Some(Value::from(v));
-                self.enabled = false;
-            }
-            None => {
-                self.value = None;
-                self.enabled = true;
-            }
-        };
     }
 
     #[allow(dead_code)]

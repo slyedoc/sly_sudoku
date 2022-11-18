@@ -86,8 +86,8 @@ pub fn theme_toggle_events(
                 ease_fn,
                 duration,
                 TextColorLens {
-                    start: old_theme.btn_text,
-                    end: theme.btn_text,
+                    start: old_theme.text,
+                    end: theme.text,
                     section: 0,
                 },
             )));            
@@ -132,7 +132,7 @@ impl ThemeMode {
 
 #[derive(Resource,Clone)]
 pub struct Theme {
-    pub btn_text: Color,
+    pub text: Color,
     pub btn_normal: Color,
     pub btn_hovered: Color,
     pub btn_pressed: Color,
@@ -151,7 +151,7 @@ impl Default for Theme {
 impl Theme {
 
     const LIGHT: Theme = Theme {
-        btn_text: Color::BLACK,
+        text: Color::BLACK,
         btn_normal: Color::WHITE,
         btn_hovered: Color::GRAY,
         btn_pressed: Color::DARK_GRAY,
@@ -162,11 +162,11 @@ impl Theme {
     };
 
     const DARK: Theme = Theme {
-        btn_text: Color::WHITE,
+        text: Color::WHITE,
         btn_normal: Color::BLACK,
         btn_hovered: Color::GRAY,
         btn_pressed: Color::DARK_GRAY,
-        btn_selected: Color::GREEN,
+        btn_selected: Color::DARK_GRAY,
         line_thin: Color::GRAY,
         line_thick: Color::WHITE,
         background: Color::BLACK,
@@ -197,8 +197,8 @@ impl FontAssets {
                 value: text.into(),
                 style: TextStyle {
                     font: self.ui_font.clone(),
-                    font_size: 90.0,
-                    color: theme.btn_text,
+                    font_size: 72.0,
+                    color: theme.text,
                 },
             }],
             alignment: TextAlignment {
@@ -207,6 +207,19 @@ impl FontAssets {
             }
         }
     }
+
+    pub fn loading_text(&self, text: impl Into<String>, theme: &Theme) -> TextSection {
+        
+            TextSection {
+                value: text.into(),
+                style: TextStyle {
+                    font: self.ui_font.clone(),
+                    font_size: 60.0,
+                    color: theme.text,
+                },
+            }
+    }
+   
 }
 
 // Note: exclude the cell buttons in the query, look for better way to do this
